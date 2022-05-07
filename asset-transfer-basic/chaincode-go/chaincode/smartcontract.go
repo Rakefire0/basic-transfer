@@ -16,22 +16,22 @@ type SmartContract struct {
 //Insert struct field in alphabetic order => to achieve determinism accross languages
 // golang keeps the order when marshal to json but doesn't order automatically
 type Asset struct {
-	AppraisedValue int    `json:"AppraisedValue"`
-	Color          string `json:"Color"`
-	ID             string `json:"ID"`
-	Owner          string `json:"Owner"`
-	Size           int    `json:"Size"`
+	webfilterlist int    `json:"webfilterlist"`
+	blocklist     string `json:"blocklist"`
+	allowlist     string `json:"allowlist"`
+	attribute1    string `json:"attribute1"`
+	attribute2    int    `json:"attribute2"`
 }
 
 // InitLedger adds a base set of assets to the ledger
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
 	assets := []Asset{
-		{ID: "asset1", Color: "blue", Size: 5, Owner: "Tomoko", AppraisedValue: 300},
-		{ID: "asset2", Color: "red", Size: 5, Owner: "Brad", AppraisedValue: 400},
-		{ID: "asset3", Color: "green", Size: 10, Owner: "Jin Soo", AppraisedValue: 500},
-		{ID: "asset4", Color: "yellow", Size: 10, Owner: "Max", AppraisedValue: 600},
-		{ID: "asset5", Color: "black", Size: 15, Owner: "Adriana", AppraisedValue: 700},
-		{ID: "asset6", Color: "white", Size: 15, Owner: "Michel", AppraisedValue: 800},
+		{allowlist: "www.google.com", blocklist: "", attribute2: 5, attribute1: "", webfilterlist: 300},
+		{allowlist: "", blocklist: "www.xxx.com", attribute2: 5, attribute1: "", webfilterlist: 400},
+		{allowlist: "www.bbc.co.uk", blocklist: "", attribute2: 10, attribute1: "", webfilterlist: 500},
+		{allowlist: "https://scholar.google.com/", blocklist: "", attribute2: 10, attribute1: "", webfilterlist: 600},
+		{allowlist: "", blocklist: "www.instagram.com", attribute2: 15, attribute1: "", webfilterlist: 700},
+		{allowlist: "www.napier.ac.uk", blocklist: "", attribute2: 15, attribute1: "", webfilterlist: 800},
 	}
 
 	for _, asset := range assets {
@@ -40,7 +40,7 @@ func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) 
 			return err
 		}
 
-		err = ctx.GetStub().PutState(asset.ID, assetJSON)
+		err = ctx.GetStub().PutState(asset.allowlist, assetJSON)
 		if err != nil {
 			return fmt.Errorf("failed to put to world state. %v", err)
 		}
@@ -50,38 +50,38 @@ func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) 
 }
 
 // CreateAsset issues a new asset to the world state with given details.
-func (s *SmartContract) CreateAsset(ctx contractapi.TransactionContextInterface, id string, color string, size int, owner string, appraisedValue int) error {
-	exists, err := s.AssetExists(ctx, id)
+func (s *SmartContract) CreateAsset(ctx contractapi.TransactionContextInterface, allowlist string, blocklist string, attribute2 int, attribute1 string, webfilterlist int) error {
+	exists, err := s.AssetExists(ctx, allowlist)
 	if err != nil {
 		return err
 	}
 	if exists {
-		return fmt.Errorf("the asset %s already exists", id)
+		return fmt.Errorf("the asset %s already exists", allowlist)
 	}
 
 	asset := Asset{
-		ID:             id,
-		Color:          color,
-		Size:           size,
-		Owner:          owner,
-		AppraisedValue: appraisedValue,
+		allowlist:     allowlist,
+		blocklist:     blocklist,
+		attribute2:    attribute2,
+		attribute1:    attribute1,
+		webfilterlist: webfilterlist,
 	}
 	assetJSON, err := json.Marshal(asset)
 	if err != nil {
 		return err
 	}
 
-	return ctx.GetStub().PutState(id, assetJSON)
+	return ctx.GetStub().PutState(allowlist, assetJSON)
 }
 
-// ReadAsset returns the asset stored in the world state with given id.
-func (s *SmartContract) ReadAsset(ctx contractapi.TransactionContextInterface, id string) (*Asset, error) {
-	assetJSON, err := ctx.GetStub().GetState(id)
+// ReadAsset returns the asset stored in the world state with given allowlist.
+func (s *SmartContract) ReadAsset(ctx contractapi.TransactionContextInterface, allowlist string) (*Asset, error) {
+	assetJSON, err := ctx.GetStub().GetState(allowlist)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read from world state: %v", err)
 	}
 	if assetJSON == nil {
-		return nil, fmt.Errorf("the asset %s does not exist", id)
+		return nil, fmt.Errorf("the asset %s does not exist", allowlist)
 	}
 
 	var asset Asset
@@ -93,48 +93,48 @@ func (s *SmartContract) ReadAsset(ctx contractapi.TransactionContextInterface, i
 	return &asset, nil
 }
 
-// UpdateAsset updates an existing asset in the world state with provided parameters.
-func (s *SmartContract) UpdateAsset(ctx contractapi.TransactionContextInterface, id string, color string, size int, owner string, appraisedValue int) error {
-	exists, err := s.AssetExists(ctx, id)
+// UpdateAsset updates an existing asset in the world state with provallowlisted parameters.
+func (s *SmartContract) UpdateAsset(ctx contractapi.TransactionContextInterface, allowlist string, blocklist string, attribute2 int, attribute1 string, webfilterlist int) error {
+	exists, err := s.AssetExists(ctx, allowlist)
 	if err != nil {
 		return err
 	}
 	if !exists {
-		return fmt.Errorf("the asset %s does not exist", id)
+		return fmt.Errorf("the asset %s does not exist", allowlist)
 	}
 
 	// overwriting original asset with new asset
 	asset := Asset{
-		ID:             id,
-		Color:          color,
-		Size:           size,
-		Owner:          owner,
-		AppraisedValue: appraisedValue,
+		allowlist:     allowlist,
+		blocklist:     blocklist,
+		attribute2:    attribute2,
+		attribute1:    attribute1,
+		webfilterlist: webfilterlist,
 	}
 	assetJSON, err := json.Marshal(asset)
 	if err != nil {
 		return err
 	}
 
-	return ctx.GetStub().PutState(id, assetJSON)
+	return ctx.GetStub().PutState(allowlist, assetJSON)
 }
 
 // DeleteAsset deletes an given asset from the world state.
-func (s *SmartContract) DeleteAsset(ctx contractapi.TransactionContextInterface, id string) error {
-	exists, err := s.AssetExists(ctx, id)
+func (s *SmartContract) DeleteAsset(ctx contractapi.TransactionContextInterface, allowlist string) error {
+	exists, err := s.AssetExists(ctx, allowlist)
 	if err != nil {
 		return err
 	}
 	if !exists {
-		return fmt.Errorf("the asset %s does not exist", id)
+		return fmt.Errorf("the asset %s does not exist", allowlist)
 	}
 
-	return ctx.GetStub().DelState(id)
+	return ctx.GetStub().DelState(allowlist)
 }
 
-// AssetExists returns true when asset with given ID exists in world state
-func (s *SmartContract) AssetExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
-	assetJSON, err := ctx.GetStub().GetState(id)
+// AssetExists returns true when asset with given allowlist exists in world state
+func (s *SmartContract) AssetExists(ctx contractapi.TransactionContextInterface, allowlist string) (bool, error) {
+	assetJSON, err := ctx.GetStub().GetState(allowlist)
 	if err != nil {
 		return false, fmt.Errorf("failed to read from world state: %v", err)
 	}
@@ -142,27 +142,27 @@ func (s *SmartContract) AssetExists(ctx contractapi.TransactionContextInterface,
 	return assetJSON != nil, nil
 }
 
-// TransferAsset updates the owner field of asset with given id in world state, and returns the old owner.
-func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterface, id string, newOwner string) (string, error) {
-	asset, err := s.ReadAsset(ctx, id)
+// TransferAsset updates the attribute1 field of asset with given allowlist in world state, and returns the old attribute1.
+func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterface, allowlist string, newattribute1 string) (string, error) {
+	asset, err := s.ReadAsset(ctx, allowlist)
 	if err != nil {
 		return "", err
 	}
 
-	oldOwner := asset.Owner
-	asset.Owner = newOwner
+	oldattribute1 := asset.attribute1
+	asset.attribute1 = newattribute1
 
 	assetJSON, err := json.Marshal(asset)
 	if err != nil {
 		return "", err
 	}
 
-	err = ctx.GetStub().PutState(id, assetJSON)
+	err = ctx.GetStub().PutState(allowlist, assetJSON)
 	if err != nil {
 		return "", err
 	}
 
-	return oldOwner, nil
+	return oldattribute1, nil
 }
 
 // GetAllAssets returns all assets found in world state
